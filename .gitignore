@@ -1,0 +1,32 @@
+# Build and test output
+bin/
+obj/
+artifacts/
+publish/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Machine-specific settings
+Directory.Build.local.props
+bag.config.json
+.vs/
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.DS_Store
+Thumbs.db
+
+# Local archives, exports, and seal decisions
+*.db
+*.db-*
+*.db3
+*.db3-*
+*.sqlite*
+*.zip
+seals.json
+bag-seals-*.tmp

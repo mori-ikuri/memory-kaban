@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>bag</AssemblyName>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>bag</ToolCommandName>
+    <PackageId>Bag.Import</PackageId>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" />
+    <PackageReference Include="System.CommandLine" Version="2.0.13" />
+    <PackageReference Include="ModelContextProtocol.Core" Version="2.3.0" />
+    <InternalsVisibleTo Include="Bag.Tests" />
+  </ItemGroup>
+</Project>
