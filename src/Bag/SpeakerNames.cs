@@ -27,10 +27,20 @@ internal sealed class SpeakerNames
         Labels = Array.AsReadOnly(mappings.Values.ToArray());
     }
 
-    public string GetDisplayName(string original)
+    public string GetDisplayName(string original, string? provider = null)
     {
-        return displayNames.TryGetValue(original, out string? display) ? display : original;
+        // Reserved provider keys must not relabel a literal Claude sender with that name.
+        if (provider != "chatgpt" && original.StartsWith("chatgpt:", StringComparison.Ordinal))
+        {
+            return original;
+        }
+        string key = MappingKey(provider, original);
+        return displayNames.TryGetValue(key, out string? display) ? display : key;
     }
+
+    // Provider scope belongs at the boundary: stored roles and version hashes stay original.
+    public static string MappingKey(string? provider, string original) =>
+        provider == "chatgpt" ? "chatgpt:" + original : original;
 
     public bool TryResolve(string display, out string original)
     {
@@ -106,7 +116,9 @@ internal sealed class SpeakerNames
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["human"] = "user",
-            ["assistant"] = "assistant"
+            ["assistant"] = "assistant",
+            ["chatgpt:user"] = "chatgpt-user",
+            ["chatgpt:assistant"] = "chatgpt-assistant"
         };
     }
 }

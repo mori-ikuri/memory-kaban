@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.1.0 (2026-10-27)
+
+- Add a Windows application-only upgrade/rollback script and Japanese procedure.
+  Stage the prepared v1.1 payload, preserve v1.0 before activation, retain both
+  versions on rollback, and support a mutation-free `-WhatIf` preview. The
+  procedure covers restarting Claude Desktop and reading the existing database.
+- Support ChatGPT `conversations-N.json` parts inside one ZIP, in numeric order
+  under one source identity and transaction. Reject mixed layouts, duplicate or
+  gapped indexes, inconsistent directories, and duplicate rooms across parts.
+  Add synthetic tests for late-part rollback, reconstruction, and ZIP immutability.
+- Document trial import into a separate new database before using a real ChatGPT
+  export. Existing installation/database paths are not changed by preparing files.
+- Add read-only MCP `find_heads` for 80-Unicode-scalar previews and `get_messages`
+  for batched exact saved-version retrieval. Keep the existing `find` envelope
+  and behavior unchanged.
+- Recheck seals on both retrieval steps, omit sealed and unknown keys alike, and
+  preserve exact bodies, source provenance, and retained versions.
+- Import ChatGPT conversation-tree ZIPs with explicit `--format chatgpt`, retaining
+  all branches and typed auxiliary nodes. Derive mainline membership from
+  `current_node`; preserve broken or unselected graphs without guessing a branch.
+- Keep non-utterance and tool data outside searchable bodies, apply type/name-only
+  tool redaction, and retain original graph identities and numeric timestamps.
+- Distinguish ChatGPT speaker labels through provider-scoped configuration while
+  keeping original roles in storage. Add `seal` / `unseal --provider chatgpt`.
+- Add synthetic importer, retrieval, and mixed-provider regression coverage.
+
+Database schema remains version 2. Existing v1.0 databases remain readable. The
+same-source importer-version check remains in force: rebuild into a new database
+from the original ZIPs when reimporting sources recorded under v1.0. Preserve seals
+and speaker configuration. ChatGPT support has not been tested on a real export;
+non-tree formats, nested ZIPs, and multi-ZIP archives are not supported. The local
+follow-up retains version 1.1.0 and schema 2; single-file message interpretation
+and hashes remain unchanged.
+
 ## 1.0.0 (2026-10-26)
 
 - Import Claude export ZIPs into a local SQLite archive while retaining message

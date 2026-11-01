@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO.Compression;
 using System.Security.Cryptography;
 
@@ -20,11 +21,16 @@ internal sealed class ImportService(IExportReader reader)
         string hash = Convert.ToHexString(SHA256.HashData(source));
         source.Position = 0;
         using ZipArchive archive = OpenArchive(source);
-        ZipArchiveEntry conversations = FindConversations(archive);
+        IReadOnlyList<ZipArchiveEntry> conversations = FindConversations(archive, reader.SupportsNumberedConversations);
         using var store = new SqliteStore(targetPath, hash, source.Length, Path.GetFileName(sourcePath), reader.Provider);
         try
         {
-            reader.Read(() => conversations.Open(), store);
+            // All parts share the original ZIP's identity and one atomic transaction.
+            // Each reader pass opens the entry directly; no extraction or concatenation.
+            foreach (ZipArchiveEntry part in conversations)
+            {
+                reader.Read(() => part.Open(), store);
+            }
         }
         catch (InvalidOperationException exception)
         {
@@ -77,10 +83,14 @@ internal sealed class ImportService(IExportReader reader)
         }
     }
 
-    private static ZipArchiveEntry FindConversations(ZipArchive archive)
+    private static IReadOnlyList<ZipArchiveEntry> FindConversations(ZipArchive archive, bool numbered)
     {
+        if (numbered)
+        {
+            return FindChatGptConversations(archive);
+        }
         List<ZipArchiveEntry> candidates = archive.Entries
-            .Where(entry => Path.GetFileName(entry.FullName.Replace('\\', '/')) == "conversations.json")
+            .Where(entry => Basename(entry) == "conversations.json")
             .ToList();
         if (candidates.Count == 0)
         {
@@ -90,6 +100,82 @@ internal sealed class ImportService(IExportReader reader)
         {
             throw BagErrors.InvalidData(FailureKind.ConversationsMultiple);
         }
-        return candidates[0];
+        return candidates;
     }
+
+    private static IReadOnlyList<ZipArchiveEntry> FindChatGptConversations(ZipArchive archive)
+    {
+        var single = new List<ZipArchiveEntry>();
+        var parts = new SortedDictionary<int, ZipArchiveEntry>();
+        string? partDirectory = null;
+        foreach (ZipArchiveEntry entry in archive.Entries)
+        {
+            string name = Basename(entry);
+            if (name == "conversations.json")
+            {
+                single.Add(entry);
+                continue;
+            }
+            if (!name.StartsWith("conversations", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+            // A malformed conversation filename must not silently disappear from
+            // an otherwise valid numbered set (or from a legacy single-file ZIP).
+            const string prefix = "conversations-";
+            const string suffix = ".json";
+            if (!name.StartsWith(prefix, StringComparison.Ordinal) || !name.EndsWith(suffix, StringComparison.Ordinal)
+                || name.Length <= prefix.Length + suffix.Length)
+            {
+                throw BagErrors.InvalidData(FailureKind.ExportInvalid);
+            }
+            ReadOnlySpan<char> digits = name.AsSpan(prefix.Length, name.Length - prefix.Length - suffix.Length);
+            foreach (char digit in digits)
+            {
+                if (digit is < '0' or > '9')
+                {
+                    throw BagErrors.InvalidData(FailureKind.ExportInvalid);
+                }
+            }
+            if (!int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out int index)
+                || !parts.TryAdd(index, entry))
+            {
+                throw BagErrors.InvalidData(FailureKind.ExportInvalid);
+            }
+            string path = entry.FullName.Replace('\\', '/');
+            string directory = path[..(path.Length - name.Length)];
+            partDirectory ??= directory;
+            if (directory != partDirectory)
+            {
+                throw BagErrors.InvalidData(FailureKind.ExportInvalid);
+            }
+        }
+        if (single.Count != 0 && parts.Count != 0)
+        {
+            throw BagErrors.InvalidData(FailureKind.ExportInvalid);
+        }
+        if (single.Count > 1)
+        {
+            throw BagErrors.InvalidData(FailureKind.ConversationsMultiple);
+        }
+        if (single.Count == 1)
+        {
+            return single;
+        }
+        if (parts.Count == 0)
+        {
+            throw BagErrors.InvalidData(FailureKind.ConversationsMissing);
+        }
+        int expected = 0;
+        foreach (int index in parts.Keys)
+        {
+            if (index != expected++)
+            {
+                throw BagErrors.InvalidData(FailureKind.ExportInvalid);
+            }
+        }
+        return parts.Values.ToList();
+    }
+
+    private static string Basename(ZipArchiveEntry entry) => Path.GetFileName(entry.FullName.Replace('\\', '/'));
 }

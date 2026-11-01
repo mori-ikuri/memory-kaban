@@ -6,24 +6,25 @@ using static Bag.Tests.SyntheticArchive;
 
 namespace Bag.Tests;
 
-public sealed class McpTests
+public sealed partial class McpTests
 {
     private readonly SyntheticArchive archive = new();
 
     [Fact]
-    public async Task AdvertisesOnlyTheTwoReadToolsAndRejectsWriteTools()
+    public async Task AdvertisesOnlyTheFourReadToolsAndRejectsWriteTools()
     {
         archive.Import(Room("room", "Synthetic room", Message("message", "Synthetic body")));
         await using McpProcess server = await McpProcess.StartAsync(archive.DatabasePath);
 
         JsonElement response = await server.RequestAsync("tools/list", new { });
         JsonElement[] tools = response.GetProperty("result").GetProperty("tools").EnumerateArray().ToArray();
-        Assert.Equal(new[] { "find", "list_rooms" }, tools.Select(tool => tool.GetProperty("name").GetString()).Order());
+        Assert.Equal(new[] { "find", "find_heads", "get_messages", "list_rooms" },
+            tools.Select(tool => tool.GetProperty("name").GetString()).Order());
         JsonElement find = tools.Single(tool => tool.GetProperty("name").GetString() == "find");
         string[] findArguments = find.GetProperty("inputSchema").GetProperty("properties")
             .EnumerateObject().Select(property => property.Name).Order().ToArray();
         Assert.Equal(new[] { "all_branches", "context", "from", "limit", "room", "speaker", "text", "to" }, findArguments);
-        Assert.Equal(new[] { "assistant", "user" }, find.GetProperty("inputSchema").GetProperty("properties")
+        Assert.Equal(new[] { "assistant", "chatgpt-assistant", "chatgpt-user", "user" }, find.GetProperty("inputSchema").GetProperty("properties")
             .GetProperty("speaker").GetProperty("enum").EnumerateArray().Select(value => value.GetString()).Order());
 
         foreach (string name in new[] { "seal", "unseal", "import", "write" })
@@ -328,7 +329,7 @@ public sealed class McpTests
 
         await using (McpProcess server = await McpProcess.StartAsync(archive.DatabasePath))
         {
-            Assert.Equal(new[] { "Guide", "Observer", "Visitor" }, await SpeakerLabelsAsync(server));
+            Assert.Equal(new[] { "chatgpt-assistant", "chatgpt-user", "Guide", "Observer", "Visitor" }, await SpeakerLabelsAsync(server));
             JsonElement first = Structured(await server.CallAsync("find", new { speaker = "Visitor" }), "bag-find/1");
             JsonElement human = Assert.Single(first.GetProperty("messages").EnumerateArray());
             Assert.Equal("human-message", human.GetProperty("message_id").GetString());
@@ -341,7 +342,7 @@ public sealed class McpTests
             File.WriteAllText(configuration,
                 """{"speaker_names":{"human":"Guest","assistant":"Helper","moderator":"Narrator"}}""");
 
-            Assert.Equal(new[] { "Guide", "Observer", "Visitor" }, await SpeakerLabelsAsync(server));
+            Assert.Equal(new[] { "chatgpt-assistant", "chatgpt-user", "Guide", "Observer", "Visitor" }, await SpeakerLabelsAsync(server));
             JsonElement unchanged = Structured(await server.CallAsync("find", new { speaker = "Visitor" }), "bag-find/1");
             Assert.Equal("Visitor", Assert.Single(unchanged.GetProperty("messages").EnumerateArray())
                 .GetProperty("speaker").GetString());
@@ -350,7 +351,7 @@ public sealed class McpTests
 
         await using (McpProcess restarted = await McpProcess.StartAsync(archive.DatabasePath))
         {
-            Assert.Equal(new[] { "Guest", "Helper", "Narrator" }, await SpeakerLabelsAsync(restarted));
+            Assert.Equal(new[] { "chatgpt-assistant", "chatgpt-user", "Guest", "Helper", "Narrator" }, await SpeakerLabelsAsync(restarted));
             JsonElement current = Structured(await restarted.CallAsync("find", new { speaker = "Guest" }), "bag-find/1");
             JsonElement human = Assert.Single(current.GetProperty("messages").EnumerateArray());
             Assert.Equal("human-message", human.GetProperty("message_id").GetString());

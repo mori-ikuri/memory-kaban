@@ -6,14 +6,15 @@ internal static class MainlineSelector
 {
     public const string RuleVersion = "latest-leaf-created-at/2";
 
-    public static MainlineResult Select(IReadOnlyList<GraphNode> nodes, string? selectedLeaf)
+    public static MainlineResult Select(IReadOnlyList<GraphNode> nodes, string? selectedLeaf, bool nullRootOnly = false)
     {
+        bool IsRootParent(string? parent) => nullRootOnly ? parent is null : IsRoot(parent);
         var byId = nodes.ToDictionary(n => n.Id, StringComparer.Ordinal);
         var parents = new HashSet<string>(StringComparer.Ordinal);
         var checkedNodes = new HashSet<string>(StringComparer.Ordinal);
         foreach (GraphNode node in nodes)
         {
-            if (!IsRoot(node.ParentId))
+            if (!IsRootParent(node.ParentId))
             {
                 if (!byId.ContainsKey(node.ParentId!))
                 {
@@ -29,7 +30,7 @@ internal static class MainlineSelector
                 {
                     return Unresolved("cycle");
                 }
-                cursor = !IsRoot(cursor.ParentId) && byId.TryGetValue(cursor.ParentId!, out GraphNode? next) ? next : null;
+                cursor = !IsRootParent(cursor.ParentId) && byId.TryGetValue(cursor.ParentId!, out GraphNode? next) ? next : null;
             }
             checkedNodes.UnionWith(path);
         }
@@ -74,7 +75,7 @@ internal static class MainlineSelector
         for (GraphNode? node = leaf; node is not null;)
         {
             members.Add(node.Id);
-            node = !IsRoot(node.ParentId) ? byId[node.ParentId!] : null;
+            node = !IsRootParent(node.ParentId) ? byId[node.ParentId!] : null;
         }
         return new MainlineResult(reason, leaf.Id, members);
     }

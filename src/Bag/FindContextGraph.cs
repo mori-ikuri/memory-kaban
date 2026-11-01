@@ -7,13 +7,15 @@ internal sealed class FindContextGraph
 {
     private readonly Dictionary<string, FindContextNode> nodes;
     private readonly Dictionary<string, List<FindContextNode>> children = new(StringComparer.Ordinal);
+    private readonly bool nullRootOnly;
 
-    private FindContextGraph(Dictionary<string, FindContextNode> nodes)
+    private FindContextGraph(Dictionary<string, FindContextNode> nodes, bool nullRootOnly)
     {
         this.nodes = nodes;
+        this.nullRootOnly = nullRootOnly;
         foreach (FindContextNode node in nodes.Values)
         {
-            if (MainlineSelector.IsRoot(node.ParentId))
+            if (IsRoot(node.ParentId))
             {
                 continue;
             }
@@ -51,7 +53,7 @@ internal sealed class FindContextGraph
                 reader.IsDBNull(3) ? null : reader.GetString(3), reader.GetInt64(4) == 1);
             nodes.Add(node.Id, node);
         }
-        return new FindContextGraph(nodes);
+        return new FindContextGraph(nodes, key.Provider == "chatgpt");
     }
 
     public IReadOnlyList<FindContextNode> Around(string messageId, int count, Func<string, bool>? isVisible = null)
@@ -79,7 +81,7 @@ internal sealed class FindContextGraph
         var context = new List<FindContextNode>();
         var visited = new HashSet<string>(StringComparer.Ordinal) { hit.Id };
         FindContextNode current = hit;
-        while (context.Count < count && !MainlineSelector.IsRoot(current.ParentId))
+        while (context.Count < count && !IsRoot(current.ParentId))
         {
             if (!nodes.TryGetValue(current.ParentId!, out FindContextNode? parent)
                 || !visited.Add(parent.Id) || !isVisible(parent.Id))
@@ -118,7 +120,7 @@ internal sealed class FindContextGraph
 
         // The room's selected leaf may be on another branch. Apply the same B rule
         // to this subtree, with its own root and no unrelated explicit selection.
-        MainlineResult result = MainlineSelector.Select(subtree, selectedLeaf: null);
+        MainlineResult result = MainlineSelector.Select(subtree, selectedLeaf: null, nullRootOnly);
         return result.LeafId is null ? null : result.Members;
     }
 
@@ -142,6 +144,8 @@ internal sealed class FindContextGraph
         }
         return context;
     }
+
+    private bool IsRoot(string? parent) => nullRootOnly ? parent is null : MainlineSelector.IsRoot(parent);
 }
 
 internal sealed record FindContextNode(

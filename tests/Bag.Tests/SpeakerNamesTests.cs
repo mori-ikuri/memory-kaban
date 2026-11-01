@@ -17,7 +17,7 @@ public sealed class SpeakerNamesTests
 
         Assert.Equal("user", names.GetDisplayName("human"));
         Assert.Equal("assistant", names.GetDisplayName("assistant"));
-        Assert.Equal(new[] { "assistant", "user" }, names.Labels.Order());
+        Assert.Equal(new[] { "assistant", "chatgpt-assistant", "chatgpt-user", "user" }, names.Labels.Order());
         Assert.True(names.TryResolve("user", out string? human));
         Assert.Equal("human", human);
         Assert.True(names.TryResolve("assistant", out string? assistant));
@@ -41,7 +41,7 @@ public sealed class SpeakerNamesTests
         Assert.Equal("Visitor", names.GetDisplayName("human"));
         Assert.Equal("assistant", names.GetDisplayName("assistant"));
         Assert.Equal("Guide", names.GetDisplayName("moderator"));
-        Assert.Equal(new[] { "assistant", "Guide", "Visitor" }.Order(), names.Labels.Order());
+        Assert.Equal(new[] { "assistant", "chatgpt-assistant", "chatgpt-user", "Guide", "Visitor" }.Order(), names.Labels.Order());
         Assert.True(names.TryResolve("Guide", out string? role));
         Assert.Equal("moderator", role);
         Assert.False(names.TryResolve("user", out _));

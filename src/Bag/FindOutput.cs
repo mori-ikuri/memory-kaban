@@ -19,7 +19,7 @@ internal static class FindOutput
             string time = message.Timestamp is DateTimeOffset timestamp
                 ? FindTime.FormatJapan(timestamp)
                 : "日時不明";
-            string speaker = names.GetDisplayName(message.Speaker);
+            string speaker = names.GetDisplayName(message.Speaker, message.Key.Provider);
             output.WriteLine($"[{time}] {speaker} ({(message.IsMatch ? "match" : "context")})");
             output.WriteLine($"Room ID: {message.Key.RoomId}; message: {message.Key.MessageId}; version: {message.Key.VersionHash}");
             foreach (FindSource source in message.Sources)
@@ -65,7 +65,7 @@ internal static class FindOutput
                 created_at = message.CreatedAt,
                 timestamp_utc = message.Timestamp?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
                 timestamp_jst = message.Timestamp is DateTimeOffset timestamp ? FindTime.JapanIso(timestamp) : null,
-                speaker = names.GetDisplayName(message.Speaker),
+                speaker = names.GetDisplayName(message.Speaker, message.Key.Provider),
                 body = message.Body,
                 is_match = message.IsMatch,
                 sources = message.Sources.Select(source => new

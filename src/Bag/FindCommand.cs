@@ -10,7 +10,7 @@ internal static class FindCommand
         Option<DateTimeOffset?> from = TimeOption("--from", "Earliest creation time, inclusive. Unzoned input is Japan time.");
         Option<DateTimeOffset?> to = TimeOption("--to", "Latest creation time, inclusive. Unzoned input is Japan time.");
         Option<string?> room = TextOption("--room", "Literal part of a room name, or an exact room ID.");
-        Option<string?> speaker = TextOption("--speaker", "Configured speaker label. Defaults: user or assistant.");
+        Option<string?> speaker = TextOption("--speaker", "Configured speaker label. ChatGPT defaults: chatgpt-user or chatgpt-assistant.");
         Option<string?> text = TextOption("--text", "Literal, case-sensitive text contained in the message body.");
         Option<int> context = CountOption("--context", "Parent-linked ancestors and selected continuation messages around each match.", 0, 0);
         Option<int> limit = CountOption("--limit", "Maximum distinct matching versions before adding context.", 20, 1);

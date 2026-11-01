@@ -49,6 +49,50 @@ internal static class McpArguments
         return true;
     }
 
+    public static bool TryReadHeads(
+        IDictionary<string, JsonElement>? arguments, out FindRequest? request, SpeakerNames? names = null)
+    {
+        request = null;
+        return arguments?.ContainsKey("context") != true && TryReadFind(arguments, out request, names);
+    }
+
+    public static bool TryReadMessageIds(
+        IDictionary<string, JsonElement>? arguments, out IReadOnlyList<FindMessageKey>? ids)
+    {
+        ids = null;
+        if (arguments is not { Count: 1 } || !arguments.TryGetValue("ids", out JsonElement value)
+            || value.ValueKind != JsonValueKind.Array || value.GetArrayLength() is < 1 or > 50)
+        {
+            return false;
+        }
+        var keys = new List<FindMessageKey>();
+        foreach (JsonElement item in value.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+            var fields = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (JsonProperty property in item.EnumerateObject())
+            {
+                if (property.Name is not "provider" and not "room_id" and not "message_id" and not "version_hash"
+                    || property.Value.ValueKind != JsonValueKind.String
+                    || string.IsNullOrEmpty(property.Value.GetString())
+                    || !fields.TryAdd(property.Name, property.Value.GetString()!))
+                {
+                    return false;
+                }
+            }
+            if (fields.Count != 4)
+            {
+                return false;
+            }
+            keys.Add(new FindMessageKey(fields["provider"], fields["room_id"], fields["message_id"], fields["version_hash"]));
+        }
+        ids = keys;
+        return true;
+    }
+
     private static bool TryReadTime(
         IDictionary<string, JsonElement> arguments, string name, out DateTimeOffset? result)
     {

@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 namespace Bag;
 
 /// <summary>Searches immutable saved versions without modifying the archive.</summary>
-internal sealed class FindService
+internal sealed partial class FindService
 {
     public FindResult Find(string databasePath, FindRequest request, bool includeSealed = false, int? totalLimit = null)
     {
@@ -92,7 +92,9 @@ internal sealed class FindService
             WHERE ($from IS NULL OR bag_utc_ticks(v.created_at) >= $from)
               AND bag_visible(v.provider, v.room_id, v.message_id)
               AND ($to IS NULL OR bag_utc_ticks(v.created_at) <= $to)
-              AND ($speaker IS NULL OR v.speaker = $speaker)
+              AND ($speaker IS NULL OR (v.speaker = $speaker
+                  AND (($chatgpt_speaker = 1 AND v.provider = 'chatgpt')
+                    OR ($chatgpt_speaker = 0 AND v.provider <> 'chatgpt'))))
               AND ($text IS NULL OR instr(v.body, $text) > 0)
               AND EXISTS (
                   SELECT 1
@@ -113,7 +115,9 @@ internal sealed class FindService
             """;
         command.Parameters.AddWithValue("$from", (object?)request.From?.UtcTicks ?? DBNull.Value);
         command.Parameters.AddWithValue("$to", (object?)request.To?.UtcTicks ?? DBNull.Value);
-        command.Parameters.AddWithValue("$speaker", (object?)request.Speaker ?? DBNull.Value);
+        bool chatGptSpeaker = request.Speaker?.StartsWith("chatgpt:", StringComparison.Ordinal) == true;
+        command.Parameters.AddWithValue("$speaker", (object?)(chatGptSpeaker ? request.Speaker![8..] : request.Speaker) ?? DBNull.Value);
+        command.Parameters.AddWithValue("$chatgpt_speaker", chatGptSpeaker ? 1 : 0);
         command.Parameters.AddWithValue("$text", (object?)request.Text ?? DBNull.Value);
         command.Parameters.AddWithValue("$room", (object?)request.Room ?? DBNull.Value);
         command.Parameters.AddWithValue("$all_branches", request.AllBranches ? 1 : 0);

@@ -1,6 +1,7 @@
 namespace Bag;
 
-internal sealed record RoomInfo(string Id, string Name, string? CreatedAt, string? SelectedLeaf);
+internal sealed record RoomInfo(string Id, string Name, string? CreatedAt, string? SelectedLeaf,
+    MainlineResult? Mainline = null, string? RuleVersion = null);
 internal sealed record AuxiliaryBlock(string Kind, string Json);
 internal sealed record ImportedMessage(
     string Id, string? ParentId, string Speaker, string? CreatedAt,
@@ -13,6 +14,7 @@ internal sealed record MainlineResult(string Reason, string? LeafId, HashSet<str
 internal interface IExportReader
 {
     string Provider { get; }
+    bool SupportsNumberedConversations => false;
     void Read(Func<Stream> openJson, IImportSink sink);
 }
 

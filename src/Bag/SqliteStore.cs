@@ -15,6 +15,7 @@ internal sealed class SqliteStore : IImportSink, IDisposable
     private readonly string provider;
     private readonly List<GraphNode> graph = [];
     private readonly HashSet<string> messageIds = new(StringComparer.Ordinal);
+    private readonly HashSet<string> roomIds = new(StringComparer.Ordinal);
     private RoomInfo? room;
     private long rooms;
     private long messages;
@@ -63,6 +64,12 @@ internal sealed class SqliteStore : IImportSink, IDisposable
 
     public void BeginRoom(RoomInfo info)
     {
+        // Reader instances may be invoked once per numbered part. The whole ZIP
+        // still has exactly one snapshot for each room; never silently merge parts.
+        if (!roomIds.Add(info.Id))
+        {
+            throw new InvalidDataException("Duplicate room identifier in one export.");
+        }
         room = info;
         graph.Clear();
         messageIds.Clear();
@@ -72,7 +79,8 @@ internal sealed class SqliteStore : IImportSink, IDisposable
             INSERT OR IGNORE INTO room_snapshots
             (source_sha,provider,room_id,name,created_at,selected_leaf,mainline_reason,rule_version)
             VALUES($p0,$p1,$p2,$p3,$p4,$p5,'pending',$p6)
-            """, sourceHash, provider, info.Id, info.Name, info.CreatedAt, info.SelectedLeaf, MainlineSelector.RuleVersion);
+            """, sourceHash, provider, info.Id, info.Name, info.CreatedAt, info.SelectedLeaf,
+            info.RuleVersion ?? MainlineSelector.RuleVersion);
     }
 
     public void AddRoomBlock(AuxiliaryBlock block)
@@ -119,8 +127,8 @@ internal sealed class SqliteStore : IImportSink, IDisposable
 
     public void EndRoom()
     {
-        MainlineResult result = MainlineSelector.Select(graph, room!.SelectedLeaf);
-        if (result.LeafId is null && graph.Count != 0)
+        MainlineResult result = room!.Mainline ?? MainlineSelector.Select(graph, room.SelectedLeaf);
+        if (result.LeafId is null && (graph.Count != 0 || room.Mainline is not null && result.Reason != "empty"))
         {
             unresolved++;
         }
@@ -136,7 +144,7 @@ internal sealed class SqliteStore : IImportSink, IDisposable
         Execute("""
             UPDATE room_snapshots SET mainline_reason=$p0,mainline_leaf=$p1,rule_version=$p2
             WHERE source_sha=$p3 AND provider=$p4 AND room_id=$p5
-            """, result.Reason, result.LeafId, MainlineSelector.RuleVersion, sourceHash, provider, room.Id);
+            """, result.Reason, result.LeafId, room.RuleVersion ?? MainlineSelector.RuleVersion, sourceHash, provider, room.Id);
         room = null;
     }
 

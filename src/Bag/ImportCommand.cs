@@ -15,7 +15,7 @@ internal static class ImportCommand
     {
         var zip = new Argument<string>("zip")
         {
-            Description = "Claude export ZIP to read without extracting files."
+            Description = "Claude or ChatGPT export ZIP to read without extracting files."
         };
         zip.Validators.Add(result =>
         {
@@ -30,7 +30,7 @@ internal static class ImportCommand
             Description = "Export provider.",
             DefaultValueFactory = _ => "claude"
         };
-        format.AcceptOnlyFromAmong("claude");
+        format.AcceptOnlyFromAmong("claude", "chatgpt");
         format.Validators.Add(result =>
         {
             if (result.IdentifierTokenCount > 1)
@@ -38,14 +38,16 @@ internal static class ImportCommand
                 result.AddError("Provide one export format.");
             }
         });
-        var command = new Command("import", "Import an immutable Claude export ZIP.")
+        var command = new Command("import", "Import an immutable Claude or ChatGPT export ZIP.")
         {
             zip, database, format
         };
         command.SetAction(parsed =>
         {
             string path = BagCommand.DatabasePath(parsed.GetValue(database), createDirectory: true);
-            ImportCounts counts = new ImportService(new ClaudeExportReader()).Import(parsed.GetValue(zip)!, path);
+            IExportReader reader = parsed.GetValue(format) == "chatgpt"
+                ? new ChatGptExportReader() : new ClaudeExportReader();
+            ImportCounts counts = new ImportService(reader).Import(parsed.GetValue(zip)!, path);
             output.WriteLine(JsonSerializer.Serialize(new
             {
                 rooms = counts.Rooms,

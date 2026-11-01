@@ -266,7 +266,7 @@ public sealed class ImportTests
         string zip = Zip(Room(Message("m", "本文")));
         byte[] before = File.ReadAllBytes(zip);
         Assert.Equal(2, ImportCommand.Run(["import", zip, "--db", zip], TextWriter.Null, TextWriter.Null));
-        Assert.Equal(1, ImportCommand.Run(["import", zip, "--format", "chatgpt"], TextWriter.Null, TextWriter.Null));
+        Assert.Equal(1, ImportCommand.Run(["import", zip, "--format", "unsupported-provider"], TextWriter.Null, TextWriter.Null));
         Assert.Equal(before, File.ReadAllBytes(zip));
     }
 

@@ -10,11 +10,24 @@ internal static class SealCommand
         Option<string?> database = BagCommand.DatabaseOption();
         Option<string?> room = IdentifierOption("--room", "Exact room ID. Also disambiguates a message ID.");
         Option<string?> message = IdentifierOption("--message", "Exact message ID; seals every saved version.");
+        var provider = new Option<string>("--provider")
+        {
+            Description = "Provider whose identifiers are being sealed or unsealed.",
+            DefaultValueFactory = _ => "claude"
+        };
+        provider.AcceptOnlyFromAmong("claude", "chatgpt");
+        provider.Validators.Add(result =>
+        {
+            if (result.IdentifierTokenCount > 1)
+            {
+                result.AddError("Provide one provider.");
+            }
+        });
         var command = new Command(seal ? "seal" : "unseal", seal
             ? "Hide a room or message using the separate seal file."
             : "Remove a room or message seal from the separate seal file.")
         {
-            database, room, message
+            database, room, message, provider
         };
         command.Validators.Add(result =>
         {
@@ -26,7 +39,8 @@ internal static class SealCommand
         command.SetAction(parsed =>
         {
             string path = BagCommand.DatabasePath(parsed.GetValue(database), createDirectory: false);
-            bool changed = new SealService().Set(path, parsed.GetValue(room), parsed.GetValue(message), seal);
+            bool changed = new SealService().Set(path, parsed.GetValue(room), parsed.GetValue(message), seal,
+                parsed.GetValue(provider)!);
             output.WriteLine(JsonSerializer.Serialize(new { changed = changed ? 1 : 0 }));
             return 0;
         });
