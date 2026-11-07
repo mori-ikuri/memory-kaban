@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 (2026-11-07)
 
 - Accept ChatGPT mapping nodes with omitted `children` arrays by deriving child
   links from their parents. Preserve original node JSON, branch identities, and
@@ -14,18 +14,10 @@
 - Keep application version 1.1.0 and database schema 2. Existing supported input
   retains its interpretation and version hashes.
 
-## 1.1.0 (2026-10-27)
-
-- Add a Windows application-only upgrade/rollback script and Japanese procedure.
-  Stage the prepared v1.1 payload, preserve v1.0 before activation, retain both
-  versions on rollback, and support a mutation-free `-WhatIf` preview. The
-  procedure covers restarting Claude Desktop and reading the existing database.
 - Support ChatGPT `conversations-N.json` parts inside one ZIP, in numeric order
   under one source identity and transaction. Reject mixed layouts, duplicate or
   gapped indexes, inconsistent directories, and duplicate rooms across parts.
   Add synthetic tests for late-part rollback, reconstruction, and ZIP immutability.
-- Document trial import into a separate new database before using a real ChatGPT
-  export. Existing installation/database paths are not changed by preparing files.
 - Add read-only MCP `find_heads` for 80-Unicode-scalar previews and `get_messages`
   for batched exact saved-version retrieval. Keep the existing `find` envelope
   and behavior unchanged.
@@ -43,11 +35,10 @@
 Database schema remains version 2. Existing v1.0 databases remain readable. The
 same-source importer-version check remains in force: rebuild into a new database
 from the original ZIPs when reimporting sources recorded under v1.0. Preserve seals
-and speaker configuration. At this release point, ChatGPT verification used synthetic exports only; see
-Unreleased for subsequent validation. Non-tree formats, nested ZIPs, and multi-ZIP
-archives are not supported. The local
-follow-up retains version 1.1.0 and schema 2; single-file message interpretation
-and hashes remain unchanged.
+and speaker configuration. ChatGPT verification includes synthetic exports and
+one real numbered export, with real conversation data kept outside the repository.
+Non-tree formats, nested ZIPs, and multi-ZIP archives are not supported. Existing
+supported input retains its interpretation and version hashes.
 
 ## 1.0.0 (2026-10-26)
 

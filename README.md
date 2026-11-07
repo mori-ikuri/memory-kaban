@@ -86,12 +86,6 @@ ChatGPT imports support the `conversations.json` conversation-tree format.
 Large exports split into `conversations-000.json`, `conversations-001.json`, and
 subsequent numbered files in the same ZIP are also supported.
 
-For the existing Windows installation, see the Japanese
-[local upgrade and rollback procedure](docs/local-upgrade.ja.md).
-It prepares v1.1, backs up v1.0 before replacing application files, and finishes
-with a read-only check of the existing database. Run the script yourself only
-after closing Claude Desktop; restart it to discover the new MCP tools.
-
 ## Build and run
 
 Requires the .NET 10 SDK (LTS), with C# 14. Restore uses Microsoft.Data.Sqlite
@@ -645,8 +639,7 @@ the same identity/version rules. Entries are read directly without extraction or
 creating a merged JSON file. The original ZIP is hashed before and after the
 whole import. Contiguity cannot detect a missing final part without a known total;
 this version does not interpret `export_manifest.json`. Use the unmodified export
-ZIP. See the [trial-import procedure](docs/local-upgrade.ja.md)
-for a command that writes a new database separate from the real archive.
+ZIP.
 
 Each conversation must have a nonempty `id` or `conversation_id` and a `mapping`
 object. If both IDs are present, they must agree. `title` is the room name;
@@ -807,25 +800,8 @@ The `Category=Large` test creates one conversation with 5,120 messages and over
 150 MiB of JSON, then imports it in a separate process with a measured working-set
 bound. To run ordinary tests only, append `--filter 'Category!=Large'`.
 
-The Windows updater has a separate regression harness for PowerShell 5.1 and 7:
-
-```powershell
-.\scripts\test-local-update.ps1 -Version10PublishPath "$env:TEMP\payload-v10" -Version11PublishPath "$env:TEMP\payload-v11"
-```
-
-Both prepared payload directories must be children of the current OS temporary
-directory. For these file-replacement tests, the v1.0 payload may be the current
-source published separately with `-p:Version=1.0.0`; that does not test historical
-v1.0 application behavior. The harness creates fresh temporary installations,
-always supplies `InstallPath`, and retains all artifacts. Its 12 cases cover
-preview, upgrade, rollback, interrupted activation recovery, file locks, invalid
-payloads, dependency paths, personal-data guards, and reparse points. It never
-uses the real installed application or database.
-
 CI definitions in `.github/workflows/ci.yml` build and run the synthetic suite on
-`windows-latest` and `ubuntu-latest`. Those hosted workflow runs have not been
-executed as part of this publication preparation; defining the jobs is not evidence
-that both platforms passed.
+`windows-latest` and `ubuntu-latest`. These jobs use synthetic data only.
 
 Import, find, and MCP operation have been verified with **one real Claude export
 (October 2026)**. Other export formats and variants remain unverified. Claude's
