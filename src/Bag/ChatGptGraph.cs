@@ -1,6 +1,6 @@
 namespace Bag;
 
-internal sealed record ChatGptNode(string Id, string? ParentId, IReadOnlyList<string> Children, bool IsUtterance);
+internal sealed record ChatGptNode(string Id, string? ParentId, IReadOnlyList<string>? Children, bool IsUtterance);
 
 internal static class ChatGptGraph
 {
@@ -19,6 +19,7 @@ internal static class ChatGptGraph
             }
             var children = new HashSet<string>(StringComparer.Ordinal);
             childSets.Add(node.Id, children);
+            if (node.Children is null) continue;
             foreach (string child in node.Children)
             {
                 if (!nodes.TryGetValue(child, out ChatGptNode? next))
@@ -29,6 +30,15 @@ internal static class ChatGptGraph
                 {
                     return Unresolved("inconsistent-children");
                 }
+            }
+        }
+        // Some exports omit children. Derive only those lists from the retained
+        // parent links; explicit lists still have to agree and are never repaired.
+        foreach (ChatGptNode node in nodes.Values)
+        {
+            if (node.ParentId is not null && nodes[node.ParentId].Children is null)
+            {
+                childSets[node.ParentId].Add(node.Id);
             }
         }
         var checkedNodes = new HashSet<string>(StringComparer.Ordinal);

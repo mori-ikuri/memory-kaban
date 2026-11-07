@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- Accept ChatGPT mapping nodes with omitted `children` arrays by deriving child
+  links from their parents. Preserve original node JSON, branch identities, and
+  current-node selection; keep rejecting explicit invalid child-array types and
+  leave contradictory or broken graphs unresolved. Add synthetic coverage for
+  split exports, branch retrieval, malformed graphs, rollback, and reimport.
+- Allow ChatGPT JSON documents up to 128 nesting levels, retaining the existing
+  64-level limit for Claude and atomic rejection beyond either bound.
+- Validate one real numbered ChatGPT export against a database copy, keeping all
+  real conversation data outside the repository and all test fixtures synthetic.
+- Keep application version 1.1.0 and database schema 2. Existing supported input
+  retains its interpretation and version hashes.
+
 ## 1.1.0 (2026-10-27)
 
 - Add a Windows application-only upgrade/rollback script and Japanese procedure.
@@ -29,8 +43,9 @@
 Database schema remains version 2. Existing v1.0 databases remain readable. The
 same-source importer-version check remains in force: rebuild into a new database
 from the original ZIPs when reimporting sources recorded under v1.0. Preserve seals
-and speaker configuration. ChatGPT support has not been tested on a real export;
-non-tree formats, nested ZIPs, and multi-ZIP archives are not supported. The local
+and speaker configuration. At this release point, ChatGPT verification used synthetic exports only; see
+Unreleased for subsequent validation. Non-tree formats, nested ZIPs, and multi-ZIP
+archives are not supported. The local
 follow-up retains version 1.1.0 and schema 2; single-file message interpretation
 and hashes remain unchanged.
 

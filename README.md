@@ -610,8 +610,9 @@ identifies `conversations.json`, but does not promise a stable schema. The tree
 shape is informed by an author's [inferred JSON schema](https://gist.github.com/dmarx/08afeb669cdc2f974d6aca61dcce360d)
 and [format notes](https://github.com/ThierryAbalea/chatgpt-conversation-export/blob/main/docs/format.md).
 Flat `messages` exports, nested ZIPs, multi-ZIP archives, and live API downloads
-are outside this version's supported contract. No real ChatGPT export has been
-validated for this release; both single and numbered layouts use synthetic tests.
+are outside this version's supported contract. One real numbered ChatGPT export has been trial-imported into a copy of an
+existing archive. Single-file and additional variants remain covered by synthetic
+tests rather than real exports.
 
 Numbered files use the exact lowercase basename `conversations-N.json`, where N
 is a nonnegative ASCII integer. Zero padding is allowed: the usual shape is
@@ -641,8 +642,14 @@ for a command that writes a new database separate from the real archive.
 Each conversation must have a nonempty `id` or `conversation_id` and a `mapping`
 object. If both IDs are present, they must agree. `title` is the room name;
 original room fields are also retained as auxiliary data. Each mapping entry has
-`parent` (string or null), `children` (array of strings), and `message` (object or
-null). Mapping keys are authoritative node identifiers and become the stored
+`parent` (string or null) and `message` (object or null). An optional `children`
+array contains string node IDs. If `children` is absent, the reader derives it
+from parent links after reading the whole mapping. Explicit arrays remain
+authoritative and are checked for inconsistencies; explicit null or invalid
+types are rejected. The retained node JSON stays unchanged, without adding the
+derived arrays. ChatGPT JSON documents may nest up to 128 levels, including
+the outer array and mapping containers; deeper input is rejected atomically.
+Claude retains its existing 64-level limit. Mapping keys are authoritative node identifiers and become the stored
 ChatGPT message IDs. Node `id` and `message.id` are retained separately; they need
 not equal the mapping key.
 
@@ -815,8 +822,11 @@ Import, find, and MCP operation have been verified with **one real Claude export
 (October 2026)**. Other export formats and variants remain unverified. Claude's
 export structure is not treated as a stable public API. Alternate field names and ZIP layouts, very
 large individual values, all attachment formats, crash/power-loss fault injection,
-and non-Windows execution have not been verified locally. ChatGPT verification
-uses synthetic mapping trees only. There are no implicit schema
+and non-Windows execution have not been verified locally. One real numbered ChatGPT export with parent-only mapping nodes and deeply nested
+auxiliary metadata has also been verified against a copied database. Node identities,
+bodies, topology, timestamps, speaker filters, repeat imports, and existing Claude
+rows were compared without retaining real data in this repository. Synthetic
+mapping trees cover other tested variants. There are no implicit schema
 repairs or claims of reconstructing data absent from the export.
 
 Seals are read filters, not encryption or erasure: the database and original ZIPs

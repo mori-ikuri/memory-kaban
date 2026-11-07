@@ -84,7 +84,7 @@ internal sealed class ChatGptExportReader : IExportReader
         Action<string, JsonElement> roomValue, Action endRoom)
     {
         using Stream stream = openJson();
-        var json = new JsonStream(stream);
+        var json = new JsonStream(stream, maxDepth: 128);
         json.Expect(JsonTokenType.StartArray);
         while (!json.NextIs(JsonTokenType.EndArray))
         {
@@ -146,8 +146,9 @@ internal sealed class ChatGptExportReader : IExportReader
 
     private static ChatGptNode ParseNode(string key, JsonElement node)
     {
+        bool hasChildren = node.TryGetProperty("children", out JsonElement children);
         if (!node.TryGetProperty("parent", out _)
-            || !node.TryGetProperty("children", out JsonElement children) || children.ValueKind != JsonValueKind.Array
+            || hasChildren && children.ValueKind != JsonValueKind.Array
             || !node.TryGetProperty("message", out JsonElement message)
             || message.ValueKind is not JsonValueKind.Object and not JsonValueKind.Null)
         {
@@ -155,14 +156,18 @@ internal sealed class ChatGptExportReader : IExportReader
         }
         string? parent = JsonRules.String(node, "parent");
         _ = JsonRules.String(node, "id"); // The mapping key remains authoritative.
-        var childIds = new List<string>();
-        foreach (JsonElement child in children.EnumerateArray())
+        List<string>? childIds = null;
+        if (hasChildren)
         {
-            if (child.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(child.GetString()))
+            childIds = [];
+            foreach (JsonElement child in children.EnumerateArray())
             {
-                throw new InvalidDataException("Invalid child identifier.");
+                if (child.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(child.GetString()))
+                {
+                    throw new InvalidDataException("Invalid child identifier.");
+                }
+                childIds.Add(child.GetString()!);
             }
-            childIds.Add(child.GetString()!);
         }
         return new ChatGptNode(key, parent, childIds, IsUtterance(message));
     }

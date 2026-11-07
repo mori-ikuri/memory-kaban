@@ -3,13 +3,13 @@ using System.Text.Json;
 namespace Bag;
 
 /// <summary>Buffers one JSON value, never an entire conversation or export array.</summary>
-internal sealed class JsonStream(Stream stream)
+internal sealed class JsonStream(Stream stream, int maxDepth = 64)
 {
     private byte[] buffer = new byte[65536];
     private int start;
     private int end;
     private bool final;
-    private JsonReaderState state;
+    private JsonReaderState state = new(new JsonReaderOptions { MaxDepth = maxDepth });
 
     public JsonTokenType Token { get; private set; }
     public string? Text { get; private set; }
