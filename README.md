@@ -1,6 +1,8 @@
 # memory-kaban
 
 memory-kaban keeps your AI conversations locally, word for word, without summarizing them.
+Import Claude and ChatGPT export ZIPs into one local archive, then retrieve the
+original messages through four read-only MCP tools.
 
 *Kaban* is Japanese for 鞄 (bag). The command is still named `bag`.
 
@@ -30,6 +32,13 @@ Run the commands from the repository root; replace the example paths with your o
    dotnet ./src/Bag/bin/Release/net10.0/bag.dll import 'D:\archive\claude.zip' --db 'D:\archive\bag.db'
    ```
 
+   For a ChatGPT export, select the format explicitly. Single-file and numbered
+   JSON exports inside one ZIP are supported:
+
+   ```powershell
+   dotnet ./src/Bag/bin/Release/net10.0/bag.dll import 'D:\archive\chatgpt.zip' --db 'D:\archive\bag.db' --format chatgpt
+   ```
+
 3. Find the original words, with nearby messages for context:
 
    ```powershell
@@ -56,9 +65,9 @@ Run the commands from the repository root; replace the example paths with your o
    }
    ```
 
-   Save, completely quit Claude Desktop, and reopen it. The `list_rooms`, `find`,
-   `find_heads`, and `get_messages`
-   tools should appear. See [Connect Claude Desktop](#connect-claude-desktop) for
+   Save, completely quit Claude Desktop, and reopen it. These four tools should
+   appear: `list_rooms`, `find`, `find_heads`, and `get_messages`. See
+   [Connect Claude Desktop](#connect-claude-desktop) for
    details, including what to do if `dotnet` is not on the client's PATH.
 
 The DLL paths above use standard build output. If you use local build overrides,
